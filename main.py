@@ -43,7 +43,7 @@ class XMLParser:
 
 if __name__ == '__main__':
     db = Database()
-    db.
+    db.get_document_amount('INV245216')
 
 """
 def __is_waitrose(parent, file):

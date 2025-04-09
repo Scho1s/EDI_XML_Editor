@@ -36,7 +36,10 @@ class Database:
         self.metadata.reflect(bind=self.engine, only=list(self.TABLES.values()))
 
     def get_document_amount(self, sop_number):
-        table = self.metadata.tables[self.TABLES['orders']]
+        table = self.metadata.tables[self.TABLES['headers']]
 
         query = select(table.c.DOCAMNT).filter(table.c.SOPNUMBE.contains(f'{sop_number}'))
-        return query.fetch()
+        with self.engine.connect() as conn:
+            result = conn.execute(query)
+            if result:
+                return result.scalar()
