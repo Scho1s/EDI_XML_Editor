@@ -39,11 +39,36 @@ PaymentValue (DOCAMNT)
 class XMLParser:
     def __main__(self, filename=None):
         self.filename = filename
+        self.root = None
+
+    def get_root(self):
+        pass
+
 
 
 if __name__ == '__main__':
-    db = Database()
-    db.get_document_amount('INV245216')
+    root = et.parse('TX003885.XML')
+    parent = root.getroot()
+
+    for child in parent.findall('Invoice'):
+        total_vat = 0
+        total_gross = 0
+        total_payable = 0
+        invoice_num = child.find('Header').find('ReferenceNumbers').find('DocumentNumber').text
+
+        for line in child.findall('Line'):
+            total_vat += float(line.find('Prices').find('VATValue').text)
+            total_gross += float(line.find('Prices').find('TotalGrossPrice').text)
+        total_payable += total_vat + total_gross
+
+        print(f"SOP Number: {invoice_num}\n"
+              f"Total vat: {round(total_vat, 2)}\n"
+              f"Total gross: {round(total_gross, 2)}\n"
+              f"Total payable: {round(total_payable, 2)}\n\n")
+
+
+    #db = Database()
+    #print(db.get_document_amount('INV476617'))
 
 """
 def __is_waitrose(parent, file):

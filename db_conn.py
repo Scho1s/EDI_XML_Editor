@@ -43,3 +43,9 @@ class Database:
             result = conn.execute(query)
             if result:
                 return result.scalar()
+
+    def get_net_price(self, item_number):
+        pass
+
+    def get_total_net_price(self, sop_number):
+        pass
