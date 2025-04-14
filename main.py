@@ -28,43 +28,74 @@ CODE = "PartnerProductCode"
 
 # TODO:
 """
-VATCode (strip), 
-PartnerProductCode (strip), 
-NetPrice (ITEMPRCE), 
-TotalNetPrice (XTNDPRCE), 
-PaymentValue (DOCAMNT)
+VATCode
+PartnerProductCode
+NetPrice 
+TotalNetPrice
+PaymentValue
 """
 
 
 class XMLParser:
-    def __main__(self, filename=None):
+    def __init__(self, filename=None):
         self.filename = filename
         self.root = None
 
+    def __check_file_exists(self):
+        try:
+            self.root = et.parse(self.filename)
+            return True
+        except AttributeError:
+            print(f"Cannot parse - no file name provided.")
+
     def get_root(self):
-        pass
+        return self.root.getroot()
+
+    def get_document_number(self, child_):
+        try:
+            document_number = child_.find('Header').find('ReferenceNumbers').find('DocumentNumber').text
+            return document_number
+        except AttributeError as e:
+            print(f"One or more tags could not be recognised.\n{e}")
+            return None
+
+    def get_all_invoices(self):
+        invoices = self.get_root().findall('Invoice')
+        return invoices
+
+    def get_all_invoice_lines(self):
+
+
+    def get_all_invoices(self):
+        xml_file.invoices = self.get_all_invoices()
+
+        for child in xml_file.invoices:
+            doc_num = self.get_document_number(child)
+            lines = self.get_all_invoice_lines(child)
+
+
+class Invoice:
+    def __init__(self, doc_num=None, total_vat=0, net=0, total_net=0):
+        self.doc_num = doc_num
+        self.total_vat = total_vat
+        self.net = net
+        self.total_net = total_net
+        self.total_payable = 0
+
+    def calculate_total_payable(self):
+        self.total_payable = self.total_vat + self.total_net
+
+
+class XMLFile:
+    def __init__(self, filename=None):
+        self.filename = filename
+        self.invoices = []
 
 
 
 if __name__ == '__main__':
-    root = et.parse('TX003885.XML')
-    parent = root.getroot()
+    xml_file = XMLFile()
 
-    for child in parent.findall('Invoice'):
-        total_vat = 0
-        total_gross = 0
-        total_payable = 0
-        invoice_num = child.find('Header').find('ReferenceNumbers').find('DocumentNumber').text
-
-        for line in child.findall('Line'):
-            total_vat += float(line.find('Prices').find('VATValue').text)
-            total_gross += float(line.find('Prices').find('TotalGrossPrice').text)
-        total_payable += total_vat + total_gross
-
-        print(f"SOP Number: {invoice_num}\n"
-              f"Total vat: {round(total_vat, 2)}\n"
-              f"Total gross: {round(total_gross, 2)}\n"
-              f"Total payable: {round(total_payable, 2)}\n\n")
 
 
     #db = Database()
