@@ -61,13 +61,13 @@ class XMLParser:
             self.__change_payable(invoice)
 
     def __rewrite_file(self):
-        self.root.write('COPY - ' + self.filename)
+        self.root.write(self.filename)
 
     def parse(self):
-        self.__check_file_exists()
-        self.__find_all_invoices()
-        self.__extract_price_values()
-        self.__rewrite_file()
+        if self.__check_file_exists():
+            self.__find_all_invoices()
+            self.__extract_price_values()
+            self.__rewrite_file()
 
     def get_root(self):
         return self.root.getroot()
