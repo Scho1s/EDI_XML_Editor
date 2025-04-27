@@ -1,12 +1,13 @@
 """
     Author      - Val J.
     Date        - 16/04/2025
-    Updated     -
+    Updated     - 27/04/2025
     Dsecription -
 """
 
 
 import xml.etree.ElementTree as et
+import os
 
 # Logger
 # TODO: Add logger
@@ -19,17 +20,66 @@ class XMLParser:
         self.invoices = dict()
         self.root = None
 
-    def __check_file_exists(self):
+    def scan_dir(self, folder='.'):
+        for file in os.scandir(folder):
+            filename = file.name
+            if filename.endswith('.XML'):
+                self.files.append(filename)
+
+    def parse(self):
+        for file in self.files:
+            self.__init_root(file)
+
+            if self.__check_file_is_edi():
+                self.__find_all_invoices()
+                self.__change_prices()
+                self.__rewrite_file()
+
+    def __init_root(self, file):
+        self.filename = file
+        self.__parse_root()
+
+    def __parse_root(self):
         try:
             self.root = et.parse(self.filename)
             return True
-        except AttributeError:
+        except FileNotFoundError:
             print(f"Cannot parse - no file name provided or file does not exist.")
+        # TODO: Add another exception for when XML is not EDI-formatted.
+
+    def __check_file_is_edi(self):
+        try:
+            self.__check_invoices_tag()
+            self.__check_invoice_tags()
+            return True
+        except AttributeError as ae:
+            print(f"Could not find root. Perhaps XML file is not an EDI file. {ae}")
+
+    def __check_invoices_tag(self):
+        try:
+            tag_name = self.get_root().tag
+            assert tag_name == 'Invoices'
+        except AssertionError:
+            print(f"Tag error. Expect 'Invoices', got '{tag_name}'")
+
+    def __check_invoice_tags(self):
+        try:
+            all_tags = [tag.tag for tag in self.get_root()]
+            assert "Invoice" in all_tags
+        except AssertionError:
+            print(f"Could not find any invoice tags. Got {all_tags}")
 
     def __find_all_invoices(self):
         self.invoices = {inv_num: {line_: line_.find('Prices')
                                    for line_ in inv_num.findall('Line')}
                          for inv_num in self.get_root().findall('Invoice')}
+
+    def __change_prices(self):
+        for invoice, lines in self.invoices.items():
+            for line, prices in lines.items():
+                self.__change_net_price(prices)
+                self.__change_total_net_price(prices)
+            self.__change_payment(invoice)
 
     @staticmethod
     def __change_net_price(prices_):
@@ -42,7 +92,7 @@ class XMLParser:
         prices_.find('TotalNetPrice').text = total_gross_price
 
     @staticmethod
-    def __change_payable(invoice):
+    def __change_payment(invoice):
         try:
             totals = invoice.find('Totals')
 
@@ -52,38 +102,14 @@ class XMLParser:
         except AttributeError as ae:
             print(f'Invalid tag name. {ae}')
 
-    def __extract_price_values(self):
-        for invoice, lines in self.invoices.items():
-            for line, prices in lines.items():
-                self.__change_net_price(prices)
-                self.__change_total_net_price(prices)
-
-            self.__change_payable(invoice)
-
     def __rewrite_file(self):
         self.root.write(self.filename)
-
-    def parse(self):
-        if self.__check_file_exists():
-            self.__find_all_invoices()
-            self.__extract_price_values()
-            self.__rewrite_file()
 
     def get_root(self):
         return self.root.getroot()
 
 
-class Invoice:
-    def __init__(self, doc_num=None, total_vat=0, total_net=0):
-        self.doc_num = doc_num
-        self.total_vat = total_vat
-        self.total_net = total_net
-        self.total_payable = total_vat + total_net
-
-    def get_total_payable(self):
-        return self.total_payable
-
-
 if __name__ == '__main__':
-    parser = XMLParser('TX003885.XML')
+    parser = XMLParser()
+    parser.scan_dir()
     parser.parse()

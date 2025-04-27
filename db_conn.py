@@ -6,7 +6,9 @@ import os
 class Database:
     TABLES = {'headers': 'SOP30200',
               'lines': 'SOP30300',
-              'customers': 'RM00101'}
+              'customers': 'RM00101',
+              'weight': 'MH170121',
+              }
 
     def __init__(self,
                  server=os.environ['GP_HOST'],
@@ -44,8 +46,15 @@ class Database:
             if result:
                 return result.scalar()
 
-    def get_net_price(self, item_number):
-        pass
+    def get_weight(self, invoice_number=None):
+        if invoice_number:
+            dict_to_return = dict()
 
-    def get_total_net_price(self, sop_number):
-        pass
+            for item in ["MOR200", "AGG200"]:
+                query = (f"SELECT TRIM(ITEMNMBR) ITEMNMBR, MH_Weight_KG FROM MH170121 "
+                         f"WHERE SOPNUMBE = '{invoice_number}' AND ITEMNMBR = '{item}'")
+                with self.engine.connect() as conn:
+                    result = conn.execute(query).fetchall()
+                    if result:
+                        dict_to_return[result[0][0]] = str(result[0][1])            # Change result[0][0] to _item_
+            return dict_to_return
