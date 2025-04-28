@@ -2,7 +2,7 @@
     Author      - Val J.
     Date        - 16/04/2025
     Updated     - 27/04/2025
-    Dsecription -
+    Description -
 """
 
 
@@ -28,39 +28,45 @@ class XMLParser:
 
     def parse(self):
         for file in self.files:
-            self.__init_root(file)
-
-            if self.__check_file_is_edi():
-                self.__find_all_invoices()
-                self.__change_prices()
-                self.__rewrite_file()
+            if self.__init_root(file):
+                if self.__check_file_is_edi():
+                    self.__find_all_invoices()
+                    self.__change_prices()
+                    self.__rewrite_file()
 
     def __init_root(self, file):
         self.filename = file
-        self.__parse_root()
+        return self.__parse_root()
 
     def __parse_root(self):
         try:
             self.root = et.parse(self.filename)
             return True
         except FileNotFoundError:
-            print(f"Cannot parse - no file name provided or file does not exist.")
-        # TODO: Add another exception for when XML is not EDI-formatted.
+            print(f"Error parsing {self.filename}. No file name provided or file does not exist.")
+        except et.ParseError:
+            print(f"Error parsing {self.filename}. XML file does not have tags")
 
     def __check_file_is_edi(self):
         try:
-            self.__check_invoices_tag()
-            self.__check_invoice_tags()
+            assert self.__check_invoices_tag() is True
+            assert self.__check_invoice_tags() is True
             return True
         except AttributeError as ae:
             print(f"Could not find root. Perhaps XML file is not an EDI file. {ae}")
+        except AssertionError:
+            pass
 
     def __check_invoices_tag(self):
+        result = False
         try:
             tag_name = self.get_root().tag
             assert tag_name == 'Invoices'
+            result = True
         except AssertionError:
             print(f"Tag error. Expect 'Invoices', got '{tag_name}'")
+        finally:
+            return result
 
     def __check_invoice_tags(self):
         try:
